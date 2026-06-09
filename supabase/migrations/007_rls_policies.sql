@@ -92,12 +92,14 @@ CREATE POLICY "configuracion_update" ON configuracion FOR UPDATE USING (get_user
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.perfiles (id, nombre, email, rol)
+  INSERT INTO public.perfiles (id, nombre, email, rol, created_at, updated_at)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'nombre', split_part(NEW.email, '@', 1)),
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'rol', 'empleado')
+    COALESCE(NEW.raw_user_meta_data->>'rol', 'empleado'),
+    now(),
+    now()
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
