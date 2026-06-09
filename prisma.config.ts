@@ -9,10 +9,11 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
-    // @ts-expect-error — directUrl ausente en tipos @prisma/config v7.x pero requerido por CLI para pgbouncer
-    directUrl: process.env["DIRECT_URL"],
+    // Usar DIRECT_URL (puerto 5432) para operaciones de schema (push/migrate)
+    // El runtime usa DATABASE_URL (pooler) via pg Pool en src/lib/prisma.ts
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 })

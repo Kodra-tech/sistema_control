@@ -20,13 +20,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  loading?: boolean
-  pageSize?: number
-  toolbar?: React.ReactNode
+  columns:        ColumnDef<TData, TValue>[]
+  data:           TData[]
+  loading?:       boolean
+  pageSize?:      number
+  toolbar?:       React.ReactNode
+  onRowClick?:    (row: TData) => void
+  rowClassName?:  (row: TData) => string
 }
 
 export function DataTable<TData, TValue>({
@@ -35,6 +38,8 @@ export function DataTable<TData, TValue>({
   loading = false,
   pageSize = 10,
   toolbar,
+  onRowClick,
+  rowClassName,
 }: DataTableProps<TData, TValue>) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -50,12 +55,13 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
   })
 
-  const isEmpty = !loading && table.getRowModel().rows.length === 0
-  const pageCount = table.getPageCount()
+  const isEmpty    = !loading && table.getRowModel().rows.length === 0
+  const pageCount  = table.getPageCount()
+  const clickable  = !!onRowClick
 
   return (
     <div className="space-y-4">
-      {toolbar && <div className="flex items-center gap-2">{toolbar}</div>}
+      {toolbar && <div className="flex items-center gap-2 flex-wrap">{toolbar}</div>}
 
       <div className="rounded-md border">
         <Table>
@@ -95,7 +101,14 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  onClick={() => onRowClick?.(row.original)}
+                  className={cn(
+                    clickable && "cursor-pointer hover:bg-muted/40",
+                    rowClassName?.(row.original),
+                  )}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

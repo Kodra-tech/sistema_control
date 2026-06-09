@@ -1,8 +1,8 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-// Rutas que solo puede ver rol distinto a 'empleado' (dueno / admin)
-const ADMIN_ONLY_ROUTES = ["/reportes", "/configuracion", "/compras"]
+// Rutas que solo pueden ver dueño / admin (no empleado)
+const ADMIN_ONLY_ROUTES = ["/reportes", "/configuracion", "/compras", "/inventario"]
 
 const STATIC_ASSET = /\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|css|map)$/
 
@@ -34,10 +34,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // getUser refresca el token si venció — NUNCA usar getSession() aquí
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const isAuthRoute = pathname === "/login"
 
@@ -54,18 +51,26 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // ── 4. Protección por rol (rutas de solo administrador / dueño) ───────────
+  // ── 4. Protección por rol ─────────────────────────────────────────────────
   if (user && ADMIN_ONLY_ROUTES.some((r) => pathname.startsWith(r))) {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("rol")
+      .select("rol, activo")
       .eq("id", user.id)
       .single()
 
-    // 'empleado' no puede acceder; cualquier otro rol (dueno / admin) sí
+    if (perfil?.activo === false) {
+      // Usuario desactivado — redirigir a login
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = "/login"
+      return NextResponse.redirect(url)
+    }
+
     if (perfil?.rol === "empleado") {
       const url = request.nextUrl.clone()
       url.pathname = "/"
+      url.search   = "?error=acceso_denegado"
       return NextResponse.redirect(url)
     }
   }

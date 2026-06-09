@@ -11,13 +11,13 @@ datasource db {
 }
 
 // ─── Perfil ──────────────────────────────────────────────────────────────────
-// Extiende auth.users de Supabase; el id es el mismo UUID de auth.users
 model Perfil {
-  id        String   @id @map("id")
+  id        String   @id @db.Uuid @map("id")
   nombre    String   @map("nombre")
   email     String   @map("email")
   // rol válidos: "dueno" | "empleado"
   rol       String   @default("empleado") @map("rol")
+  activo    Boolean  @default(true) @map("activo")
   avatarUrl String?  @map("avatar_url")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -27,8 +27,9 @@ model Perfil {
 
 // ─── Cliente ─────────────────────────────────────────────────────────────────
 model Cliente {
-  id        String   @id @default(uuid()) @map("id")
+  id        String   @id @default(uuid()) @db.Uuid @map("id")
   nombre    String   @map("nombre")
+  apellido  String?  @map("apellido")
   telefono  String?  @map("telefono")
   email     String?  @map("email")
   notas     String?  @db.Text @map("notas")
@@ -44,12 +45,12 @@ model Cliente {
 
 // ─── Servicio ─────────────────────────────────────────────────────────────────
 model Servicio {
-  id              String   @id @default(uuid()) @map("id")
+  id              String   @id @default(uuid()) @db.Uuid @map("id")
   nombre          String   @map("nombre")
   descripcion     String?  @db.Text @map("descripcion")
   precio          Decimal  @db.Decimal(10, 2) @map("precio")
+  costo           Decimal? @db.Decimal(10, 2) @map("costo")
   duracionMinutos Int      @map("duracion_minutos")
-  // categoria válidas: "corte" | "tinte" | "peinado" | "manicure" | "pedicure" | "tratamiento" | "otro"
   categoria       String?  @map("categoria")
   activo          Boolean  @default(true) @map("activo")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -61,19 +62,15 @@ model Servicio {
 }
 
 // ─── Cita ─────────────────────────────────────────────────────────────────────
-// Relación circular con Venta (dos FKs, una en cada tabla):
-//   cita.venta_id  → ventas.id  (la venta que generó esta cita al cobrarla)
-//   venta.cita_id  → citas.id   (la cita que originó esa venta)
 model Cita {
-  id         String    @id @default(uuid()) @map("id")
-  clienteId  String    @map("cliente_id")
-  servicioId String    @map("servicio_id")
-  // venta_id: se llena al cobrar la cita (FK a ventas)
-  ventaId    String?   @unique @map("venta_id")
+  id         String    @id @default(uuid()) @db.Uuid @map("id")
+  clienteId  String    @db.Uuid @map("cliente_id")
+  servicioId String    @db.Uuid @map("servicio_id")
+  ventaId    String?   @unique @db.Uuid @map("venta_id")
   fecha      DateTime  @db.Date @map("fecha")
   horaInicio DateTime  @db.Time(6) @map("hora_inicio")
   horaFin    DateTime? @db.Time(6) @map("hora_fin")
-  // estado válidos: "pendiente" | "confirmada" | "completada" | "cancelada" | "no_asistio"
+  // estado válidos: "pendiente" | "confirmada" | "realizada" | "cancelada" | "no_asistio"
   estado     String    @default("pendiente") @map("estado")
   notas      String?   @db.Text @map("notas")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -81,52 +78,51 @@ model Cita {
 
   cliente  Cliente  @relation(fields: [clienteId], references: [id])
   servicio Servicio @relation(fields: [servicioId], references: [id])
-
-  // Relación "CitaVenta": cita.venta_id → ventas.id
   venta    Venta?   @relation("CitaVenta", fields: [ventaId], references: [id])
-  // Back-ref de "VentaCita": la Venta cuyo cita_id apunta a esta Cita
   ventaRef Venta?   @relation("VentaCita")
 
   @@map("citas")
 }
 
 // ─── Venta ───────────────────────────────────────────────────────────────────
-// NOTA: la columna "utilidad" es GENERATED en PostgreSQL (total - costo).
-//       No se incluye en Prisma. Leerla vía $queryRaw o vista resumen_mensual.
 model Venta {
-  id         String   @id @default(uuid()) @map("id")
-  clienteId  String   @map("cliente_id")
-  // cita_id: nullable — puede ser venta directa sin cita previa
-  citaId     String?  @unique @map("cita_id")
-  subtotal   Decimal  @db.Decimal(10, 2) @map("subtotal")
-  descuento  Decimal  @db.Decimal(10, 2) @default(0) @map("descuento")
-  total      Decimal  @db.Decimal(10, 2) @map("total")
+  id             String   @id @default(uuid()) @db.Uuid @map("id")
+  clienteId      String   @db.Uuid @map("cliente_id")
+  citaId         String?  @unique @db.Uuid @map("cita_id")
+  inventarioId   String?  @db.Uuid @map("inventario_id")
+  // tipo válidos: "servicio" | "producto"
+  tipo           String   @default("servicio") @map("tipo")
+  // concepto: nombre del servicio o producto vendido
+  concepto       String?  @map("concepto")
+  cantidad       Int      @default(1) @map("cantidad")
+  precioUnitario Decimal? @db.Decimal(10, 2) @map("precio_unitario")
+  costoUnitario  Decimal? @db.Decimal(10, 2) @map("costo_unitario")
+  subtotal       Decimal  @db.Decimal(10, 2) @map("subtotal")
+  descuento      Decimal  @db.Decimal(10, 2) @default(0) @map("descuento")
+  total          Decimal  @db.Decimal(10, 2) @map("total")
   // metodo_pago válidos: "efectivo" | "tarjeta" | "transferencia" | "otro"
-  metodoPago String   @map("metodo_pago")
-  fecha      DateTime @db.Date @map("fecha")
-  notas      String?  @db.Text @map("notas")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  metodoPago     String   @map("metodo_pago")
+  fecha          DateTime @db.Date @map("fecha")
+  notas          String?  @db.Text @map("notas")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  cliente Cliente @relation(fields: [clienteId], references: [id])
-
-  // Relación "VentaCita": venta.cita_id → citas.id
-  cita    Cita?   @relation("VentaCita", fields: [citaId], references: [id])
-  // Back-ref de "CitaVenta": la Cita cuyo venta_id apunta a esta Venta
-  citaRef Cita?   @relation("CitaVenta")
+  cliente    Cliente     @relation(fields: [clienteId], references: [id])
+  inventario Inventario? @relation(fields: [inventarioId], references: [id])
+  cita       Cita?       @relation("VentaCita", fields: [citaId], references: [id])
+  citaRef    Cita?       @relation("CitaVenta")
 
   @@map("ventas")
 }
 
 // ─── Gasto ───────────────────────────────────────────────────────────────────
 model Gasto {
-  id          String   @id @default(uuid()) @map("id")
+  id          String   @id @default(uuid()) @db.Uuid @map("id")
   concepto    String   @map("concepto")
   monto       Decimal  @db.Decimal(10, 2) @map("monto")
-  // categoria válidas: "renta" | "salario" | "insumos" | "servicios" | "publicidad" | "mantenimiento" | "otro"
+  // categoria válidas: ver CATEGORIAS_GASTO en src/lib/constants.ts
   categoria   String   @map("categoria")
   fecha       DateTime @db.Date @map("fecha")
-  // comprobante: URL del archivo de comprobante (storage de Supabase)
   comprobante String?  @map("comprobante")
   notas       String?  @db.Text @map("notas")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -137,30 +133,32 @@ model Gasto {
 
 // ─── Inventario ───────────────────────────────────────────────────────────────
 model Inventario {
-  id             String   @id @default(uuid()) @map("id")
+  id             String   @id @default(uuid()) @db.Uuid @map("id")
+  codigo         String?  @map("codigo")                         // SKU o código de barras
   nombre         String   @map("nombre")
   descripcion    String?  @db.Text @map("descripcion")
-  // categoria válidas: "tinte" | "shampoo" | "acondicionador" | "tratamiento" | "herramienta" | "accesorio" | "otro"
+  // categoria válidas: ver CATEGORIAS_INVENTARIO en src/lib/constants.ts
   categoria      String   @map("categoria")
   // unidad válidas: "pieza" | "litro" | "mililitro" | "gramo" | "kilogramo"
   unidad         String   @default("pieza") @map("unidad")
   stockActual    Decimal  @db.Decimal(10, 2) @map("stock_actual")
   stockMinimo    Decimal  @db.Decimal(10, 2) @default(0) @map("stock_minimo")
-  precioUnitario Decimal  @db.Decimal(10, 2) @map("precio_unitario")
+  precioUnitario Decimal  @db.Decimal(10, 2) @map("precio_unitario") // costo de compra
+  precioVenta    Decimal? @db.Decimal(10, 2) @map("precio_venta")    // precio al público
   activo         Boolean  @default(true) @map("activo")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   compras Compra[]
+  ventas  Venta[]
 
   @@map("inventario")
 }
 
 // ─── Compra ───────────────────────────────────────────────────────────────────
-// Registra cada reabastecimiento de inventario; actualiza stock_actual del producto
 model Compra {
-  id             String   @id @default(uuid()) @map("id")
-  productoId     String   @map("producto_id")
+  id             String   @id @default(uuid()) @db.Uuid @map("id")
+  productoId     String   @db.Uuid @map("producto_id")
   cantidad       Decimal  @db.Decimal(10, 2) @map("cantidad")
   precioUnitario Decimal  @db.Decimal(10, 2) @map("precio_unitario")
   total          Decimal  @db.Decimal(10, 2) @map("total")
@@ -176,9 +174,8 @@ model Compra {
 }
 
 // ─── Configuracion ────────────────────────────────────────────────────────────
-// Registro singleton: un solo registro por instalación del sistema
 model Configuracion {
-  id           String    @id @default(uuid()) @map("id")
+  id           String    @id @default(uuid()) @db.Uuid @map("id")
   nombreSalon  String    @map("nombre_salon")
   telefono     String?   @map("telefono")
   email        String?   @map("email")
@@ -188,6 +185,7 @@ model Configuracion {
   horaApertura DateTime? @db.Time(6) @map("hora_apertura")
   horaCierre   DateTime? @db.Time(6) @map("hora_cierre")
   logoUrl      String?   @map("logo_url")
+  anioFiscal   Int?      @map("anio_fiscal")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
