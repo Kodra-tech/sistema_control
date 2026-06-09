@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CATEGORIAS_INVENTARIO, UNIDADES_INVENTARIO } from "@/lib/constants"
+import { NumberInput } from "@/components/shared/NumberInput"
 import type { InventarioRow } from "@/components/inventario/InventarioColumns"
 
 const formSchema = z.object({
@@ -24,8 +25,8 @@ const formSchema = z.object({
   nombre:         z.string().min(2, "Mínimo 2 caracteres"),
   categoria:      z.enum(CATEGORIAS_INVENTARIO),
   unidad:         z.enum(UNIDADES_INVENTARIO),
-  stockActual:    z.number().min(0),
-  stockMinimo:    z.number().min(0),
+  stockActual:    z.number().min(0).optional(),
+  stockMinimo:    z.number().min(0).optional(),
   precioUnitario: z.number().positive("Requerido"),
   precioVenta:    z.number().positive().optional(),
 })
@@ -39,23 +40,6 @@ interface InventarioFormProps {
   defaultValues?: InventarioRow | null
 }
 
-function NumField({ value, onChange, label, min = 0 }: { value?: number; onChange: (v: number) => void; label: string; min?: number }) {
-  return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <FormControl>
-        <Input
-          type="number"
-          step="0.01"
-          min={min}
-          value={value === undefined ? "" : value}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        />
-      </FormControl>
-    </FormItem>
-  )
-}
-
 export function InventarioForm({ open, onClose, onSuccess, defaultValues }: InventarioFormProps) {
   const isEditing = !!defaultValues?.id
 
@@ -66,8 +50,8 @@ export function InventarioForm({ open, onClose, onSuccess, defaultValues }: Inve
       nombre:         defaultValues?.nombre         ?? "",
       categoria:      (defaultValues?.categoria as (typeof CATEGORIAS_INVENTARIO)[number]) ?? "Otro",
       unidad:         (defaultValues?.unidad as (typeof UNIDADES_INVENTARIO)[number])      ?? "pieza",
-      stockActual:    defaultValues ? Number(defaultValues.stockActual) : 0,
-      stockMinimo:    defaultValues ? Number(defaultValues.stockMinimo) : 0,
+      stockActual:    defaultValues ? Number(defaultValues.stockActual) : undefined,
+      stockMinimo:    defaultValues ? Number(defaultValues.stockMinimo) : undefined,
       precioUnitario: defaultValues ? Number(defaultValues.precioUnitario) : undefined,
       precioVenta:    defaultValues?.precioVenta ? Number(defaultValues.precioVenta) : undefined,
     },
@@ -80,8 +64,8 @@ export function InventarioForm({ open, onClose, onSuccess, defaultValues }: Inve
         nombre:         defaultValues?.nombre         ?? "",
         categoria:      (defaultValues?.categoria as (typeof CATEGORIAS_INVENTARIO)[number]) ?? "Otro",
         unidad:         (defaultValues?.unidad as (typeof UNIDADES_INVENTARIO)[number])      ?? "pieza",
-        stockActual:    defaultValues ? Number(defaultValues.stockActual) : 0,
-        stockMinimo:    defaultValues ? Number(defaultValues.stockMinimo) : 0,
+        stockActual:    defaultValues ? Number(defaultValues.stockActual) : undefined,
+        stockMinimo:    defaultValues ? Number(defaultValues.stockMinimo) : undefined,
         precioUnitario: defaultValues ? Number(defaultValues.precioUnitario) : undefined,
         precioVenta:    defaultValues?.precioVenta ? Number(defaultValues.precioVenta) : undefined,
       })
@@ -90,12 +74,17 @@ export function InventarioForm({ open, onClose, onSuccess, defaultValues }: Inve
   }, [open])
 
   async function onSubmit(values: FormValues) {
+    const body = {
+      ...values,
+      stockActual: values.stockActual ?? 0,
+      stockMinimo: values.stockMinimo ?? 0,
+    }
     const url    = isEditing ? `/api/inventario/${defaultValues!.id}` : "/api/inventario"
     const method = isEditing ? "PATCH" : "POST"
     const res    = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(values),
+      body:    JSON.stringify(body),
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -160,19 +149,60 @@ export function InventarioForm({ open, onClose, onSuccess, defaultValues }: Inve
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="stockActual" render={({ field }) => (
-                <NumField label="Stock actual" value={field.value} onChange={field.onChange} />
+                <FormItem>
+                  <FormLabel>Stock actual</FormLabel>
+                  <FormControl>
+                    <NumberInput
+                      value={field.value}
+                      onChange={(v) => field.onChange(v ?? 0)}
+                      step="1"
+                      min={0}
+                      allowZero
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
               <FormField control={form.control} name="stockMinimo" render={({ field }) => (
-                <NumField label="Stock mínimo" value={field.value} onChange={field.onChange} />
+                <FormItem>
+                  <FormLabel>Stock mínimo</FormLabel>
+                  <FormControl>
+                    <NumberInput
+                      value={field.value}
+                      onChange={(v) => field.onChange(v ?? 0)}
+                      step="1"
+                      min={0}
+                      allowZero
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="precioUnitario" render={({ field }) => (
-                <NumField label="Costo unitario" value={field.value} onChange={field.onChange} min={0.01} />
+                <FormItem>
+                  <FormLabel>Costo unitario</FormLabel>
+                  <FormControl>
+                    <NumberInput value={field.value} onChange={field.onChange} prefix="$" step="0.01" min={0.01} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
               <FormField control={form.control} name="precioVenta" render={({ field }) => (
-                <NumField label="Precio venta" value={field.value} onChange={(v) => field.onChange(v || undefined)} />
+                <FormItem>
+                  <FormLabel>Precio venta</FormLabel>
+                  <FormControl>
+                    <NumberInput
+                      value={field.value}
+                      onChange={(v) => field.onChange(v ?? undefined)}
+                      prefix="$"
+                      step="0.01"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
             </div>
 

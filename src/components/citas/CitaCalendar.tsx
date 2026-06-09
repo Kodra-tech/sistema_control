@@ -5,7 +5,7 @@ import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
 import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction"
-import type { EventClickArg, EventDropArg, EventInput } from "@fullcalendar/core"
+import type { EventClickArg, EventDropArg, EventInput, ToolbarInput } from "@fullcalendar/core"
 import {
   Sheet,
   SheetContent,
@@ -73,6 +73,22 @@ export default function CitaCalendar() {
   const [realtimeActive, setRealtimeActive]   = useState(false)
   const [fetching,       setFetching]         = useState(false)
   const currentRangeRef = useRef<{ start: string; end: string } | null>(null)
+  const calendarRef     = useRef<FullCalendar>(null)
+
+  // Detectar móvil sincrónicamente para evitar flash de la vista incorrecta
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)")
+    const handler = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches)
+      calendarRef.current?.getApi().changeView(e.matches ? "timeGridDay" : "timeGridWeek")
+    }
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const fetchCitas = useCallback(async (start?: string, end?: string) => {
     const s = start ?? currentRangeRef.current?.start
@@ -192,22 +208,30 @@ export default function CitaCalendar() {
       </div>
 
       {/* Calendario */}
-      <div className="rounded-lg border bg-card overflow-hidden">
+      <div className="rounded-lg border bg-card overflow-hidden fc-responsive">
         <FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
+          initialView={isMobile ? "timeGridDay" : "timeGridWeek"}
           locale="es"
-          headerToolbar={{
-            left:   "prev,next today",
-            center: "title",
-            right:  "dayGridMonth,timeGridWeek,timeGridDay",
-          }}
-          buttonText={{
-            today: "Hoy",
-            month: "Mes",
-            week:  "Semana",
-            day:   "Día",
-          }}
+          headerToolbar={
+            isMobile
+              ? ({
+                  left:   "prev,next",
+                  center: "title",
+                  right:  "timeGridDay,timeGridWeek",
+                } satisfies ToolbarInput)
+              : ({
+                  left:   "prev,next today",
+                  center: "title",
+                  right:  "dayGridMonth,timeGridWeek,timeGridDay",
+                } satisfies ToolbarInput)
+          }
+          buttonText={
+            isMobile
+              ? { today: "Hoy", day: "Día", week: "Sem" }
+              : { today: "Hoy", month: "Mes", week: "Semana", day: "Día" }
+          }
           slotMinTime="08:00:00"
           slotMaxTime="20:00:00"
           slotDuration="00:30:00"
@@ -225,8 +249,11 @@ export default function CitaCalendar() {
             }
             fetchCitas(arg.startStr.split("T")[0], arg.endStr.split("T")[0])
           }}
-          height="auto"
+          contentHeight={isMobile ? 600 : "auto"}
           eventDisplay="block"
+          eventMinHeight={isMobile ? 28 : 20}
+          dayMaxEventRows={isMobile ? 2 : 4}
+          stickyHeaderDates
         />
       </div>
 

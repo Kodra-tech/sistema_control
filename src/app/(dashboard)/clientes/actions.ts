@@ -90,3 +90,38 @@ export async function softDeleteClienteAction(id: string): Promise<{ error?: str
   revalidatePath("/clientes")
   return {}
 }
+
+export async function activateClienteAction(id: string): Promise<{ error?: string }> {
+  await requireAuth()
+
+  const existing = await prisma.cliente.findUnique({ where: { id } })
+  if (!existing)       return { error: "Cliente no encontrado" }
+  if (existing.activo) return { error: "El cliente ya está activo" }
+
+  await prisma.cliente.update({ where: { id }, data: { activo: true } })
+
+  await invalidateCache(
+    CACHE_KEYS.clientes(true),
+    CACHE_KEYS.clientes(false),
+    CACHE_KEYS.cliente(id),
+  )
+  revalidatePath("/clientes")
+  return {}
+}
+
+export async function hardDeleteClienteAction(id: string): Promise<{ error?: string }> {
+  await requireAuth()
+
+  const existing = await prisma.cliente.findUnique({ where: { id } })
+  if (!existing) return { error: "Cliente no encontrado" }
+
+  await prisma.cliente.delete({ where: { id } })
+
+  await invalidateCache(
+    CACHE_KEYS.clientes(true),
+    CACHE_KEYS.clientes(false),
+    CACHE_KEYS.cliente(id),
+  )
+  revalidatePath("/clientes")
+  return {}
+}

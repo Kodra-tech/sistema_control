@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Header } from "@/components/layout/Header"
+import { RadixCleanup } from "@/components/layout/RadixCleanup"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-background">
+      <RadixCleanup />
       <Sidebar />
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <Header nombreSalon={nombreSalon} nombreUsuario={nombreUsuario} />

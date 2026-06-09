@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { formatMXN } from "@/lib/utils/currency"
 import { METODOS_PAGO } from "@/lib/constants"
+import { NumberInput } from "@/components/shared/NumberInput"
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ const formSchema = z.object({
   cantidad:       z.number().int().positive(),
   precioUnitario: z.number().positive("Precio requerido"),
   costoUnitario:  z.number().min(0).optional(),
-  descuento:      z.number().min(0),
+  descuento:      z.number().min(0).optional(),
   metodoPago:     z.enum(["efectivo", "tarjeta", "transferencia", "otro"]),
   fecha:          z.string(),
   notas:          z.string().optional(),
@@ -53,27 +54,6 @@ interface ClienteOpt {
   id: string; nombre: string; apellido: string | null; telefono: string | null
 }
 
-// ── NumField helper ───────────────────────────────────────────────────────────
-
-function NumField({ value, onChange, label, min = 0, step = "0.01", disabled = false }:
-  { value: number | undefined; onChange: (v: number) => void; label: string; min?: number; step?: string; disabled?: boolean }) {
-  return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <FormControl>
-        <Input
-          type="number"
-          step={step}
-          min={min}
-          disabled={disabled}
-          value={value === undefined ? "" : value}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        />
-      </FormControl>
-    </FormItem>
-  )
-}
-
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export function VentaForm() {
@@ -90,14 +70,11 @@ export function VentaForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      tipo:           "servicio",
-      cantidad:       1,
-      descuento:      0,
-      precioUnitario: 0,
-      metodoPago:     "efectivo",
-      fecha:          today,
-      concepto:       "",
-      notas:          "",
+      tipo:       "servicio",
+      metodoPago: "efectivo",
+      fecha:      today,
+      concepto:   "",
+      notas:      "",
     },
   })
 
@@ -158,18 +135,18 @@ export function VentaForm() {
     setSubmitting(true)
     try {
       const body = {
-        clienteId:     values.clienteId     || null,
-        citaId:        null,
-        inventarioId:  values.inventarioId  || null,
-        tipo:          values.tipo,
-        concepto:      values.concepto,
-        cantidad:      values.cantidad,
+        clienteId:      values.clienteId     || null,
+        citaId:         null,
+        inventarioId:   values.inventarioId  || null,
+        tipo:           values.tipo,
+        concepto:       values.concepto,
+        cantidad:       values.cantidad,
         precioUnitario: values.precioUnitario,
-        costoUnitario: values.costoUnitario ?? null,
-        descuento:     values.descuento,
-        metodoPago:    values.metodoPago,
-        fecha:         values.fecha,
-        notas:         values.notas || null,
+        costoUnitario:  values.costoUnitario ?? null,
+        descuento:      values.descuento ?? 0,
+        metodoPago:     values.metodoPago,
+        fecha:          values.fecha,
+        notas:          values.notas || null,
       }
       const res = await fetch("/api/ventas", {
         method: "POST",
@@ -303,31 +280,49 @@ export function VentaForm() {
             control={form.control}
             name="cantidad"
             render={({ field }) => (
-              <NumField
-                label="Cantidad"
-                value={field.value}
-                onChange={field.onChange}
-                min={1}
-                step="1"
-              />
+              <FormItem>
+                <FormLabel>Cantidad</FormLabel>
+                <FormControl>
+                  <NumberInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    step="1"
+                    min={1}
+                    placeholder="1"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
           <FormField
             control={form.control}
             name="precioUnitario"
             render={({ field }) => (
-              <NumField label="Precio unitario" value={field.value} onChange={field.onChange} />
+              <FormItem>
+                <FormLabel>Precio unitario</FormLabel>
+                <FormControl>
+                  <NumberInput value={field.value} onChange={field.onChange} prefix="$" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
           <FormField
             control={form.control}
             name="costoUnitario"
             render={({ field }) => (
-              <NumField
-                label="Costo unitario"
-                value={field.value ?? undefined}
-                onChange={(v) => field.onChange(v || undefined)}
-              />
+              <FormItem>
+                <FormLabel>Costo unitario</FormLabel>
+                <FormControl>
+                  <NumberInput
+                    value={field.value ?? undefined}
+                    onChange={(v) => field.onChange(v ?? undefined)}
+                    prefix="$"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
         </div>
@@ -338,7 +333,18 @@ export function VentaForm() {
             control={form.control}
             name="descuento"
             render={({ field }) => (
-              <NumField label="Descuento" value={field.value} onChange={field.onChange} />
+              <FormItem>
+                <FormLabel>Descuento</FormLabel>
+                <FormControl>
+                  <NumberInput
+                    value={field.value}
+                    onChange={(v) => field.onChange(v ?? 0)}
+                    prefix="$"
+                    allowZero
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
           <FormField

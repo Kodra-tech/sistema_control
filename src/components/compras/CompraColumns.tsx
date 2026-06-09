@@ -49,7 +49,7 @@ export function getCompraColumns(
     },
     {
       accessorKey: "cantidad",
-      header: "Cantidad",
+      header: () => <div className="text-right">Cantidad</div>,
       cell: ({ row }) => (
         <span className="text-sm text-right block">
           {Number(row.original.cantidad)} {row.original.producto.unidad}
@@ -58,20 +58,21 @@ export function getCompraColumns(
     },
     {
       accessorKey: "precioUnitario",
-      header: "C. unitario",
+      header: () => <div className="text-right">C. unitario</div>,
       cell: ({ row }) => (
         <span className="text-sm text-right block">{formatMXN(Number(row.original.precioUnitario))}</span>
       ),
     },
     {
       accessorKey: "total",
-      header: "Total",
+      header: () => <div className="text-right">Total</div>,
       cell: ({ row }) => (
         <span className="text-sm font-medium text-right block">{formatMXN(Number(row.original.total))}</span>
       ),
     },
     {
       id: "acciones",
+      header: () => null,
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -82,7 +83,7 @@ export function getCompraColumns(
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={() => onDelete(row.original.id)}
+              onClick={(e) => { e.stopPropagation(); onDelete(row.original.id) }}
             >
               <Trash2 className="h-4 w-4 mr-2" /> Eliminar
             </DropdownMenuItem>

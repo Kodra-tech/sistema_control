@@ -4,9 +4,10 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Pencil, ToggleRight, AlertTriangle } from "lucide-react"
+import { MoreHorizontal, Pencil, ToggleLeft, ToggleRight, Trash2, AlertTriangle } from "lucide-react"
 import { formatMXN } from "@/lib/utils/currency"
 
 export interface InventarioRow {
@@ -22,6 +23,13 @@ export interface InventarioRow {
   activo:         boolean
 }
 
+interface Actions {
+  onEdit:       (row: InventarioRow) => void
+  onDesactivar: (row: InventarioRow) => void
+  onActivar:    (row: InventarioRow) => void
+  onHardDelete: (row: InventarioRow) => void
+}
+
 function calcMargen(row: InventarioRow): number | null {
   if (!row.precioVenta) return null
   const costo  = Number(row.precioUnitario)
@@ -30,10 +38,7 @@ function calcMargen(row: InventarioRow): number | null {
   return ((venta - costo) / venta) * 100
 }
 
-export function getInventarioColumns(
-  onEdit:   (row: InventarioRow) => void,
-  onToggle: (id: string, activo: boolean) => void,
-): ColumnDef<InventarioRow>[] {
+export function getInventarioColumns(actions: Actions): ColumnDef<InventarioRow>[] {
   return [
     {
       accessorKey: "codigo",
@@ -52,7 +57,7 @@ export function getInventarioColumns(
         return (
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm">{row.original.nombre}</span>
-            {stockBajo && (
+            {stockBajo && row.original.activo && (
               <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
                 <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Stock bajo
               </Badge>
@@ -70,11 +75,11 @@ export function getInventarioColumns(
     },
     {
       accessorKey: "stockActual",
-      header: "Stock",
+      header: () => <div className="text-right">Stock</div>,
       cell: ({ row }) => {
         const actual    = Number(row.original.stockActual)
         const minimo    = Number(row.original.stockMinimo)
-        const stockBajo = actual <= minimo
+        const stockBajo = actual <= minimo && row.original.activo
         return (
           <span className={`text-sm font-medium text-right block ${stockBajo ? "text-red-700" : ""}`}>
             {actual} {row.original.unidad}
@@ -84,7 +89,7 @@ export function getInventarioColumns(
     },
     {
       accessorKey: "stockMinimo",
-      header: "Mín.",
+      header: () => <div className="text-right">Mín.</div>,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground text-right block">
           {Number(row.original.stockMinimo)} {row.original.unidad}
@@ -93,14 +98,14 @@ export function getInventarioColumns(
     },
     {
       accessorKey: "precioUnitario",
-      header: "Costo",
+      header: () => <div className="text-right">Costo</div>,
       cell: ({ row }) => (
         <span className="text-sm text-right block">{formatMXN(Number(row.original.precioUnitario))}</span>
       ),
     },
     {
       accessorKey: "precioVenta",
-      header: "P. venta",
+      header: () => <div className="text-right">P. venta</div>,
       cell: ({ row }) => (
         <span className="text-sm text-right block">
           {row.original.precioVenta ? formatMXN(Number(row.original.precioVenta)) : "—"}
@@ -109,7 +114,7 @@ export function getInventarioColumns(
     },
     {
       id: "margen",
-      header: "Margen %",
+      header: () => <div className="text-right">Margen %</div>,
       cell: ({ row }) => {
         const m = calcMargen(row.original)
         if (m === null) return <span className="text-muted-foreground text-sm">—</span>
@@ -119,24 +124,54 @@ export function getInventarioColumns(
     },
     {
       id: "acciones",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(row.original)}>
-              <Pencil className="h-4 w-4 mr-2" /> Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onToggle(row.original.id, row.original.activo)}>
-              <ToggleRight className="h-4 w-4 mr-2" />
-              {row.original.activo ? "Desactivar" : "Activar"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      header: () => null,
+      cell: ({ row }) => {
+        const item = row.original
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); actions.onEdit(item) }}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> Editar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {item.activo ? (
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); actions.onDesactivar(item) }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <ToggleLeft className="h-4 w-4 mr-2" /> Desactivar
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); actions.onActivar(item) }}
+                  >
+                    <ToggleRight className="h-4 w-4 mr-2" /> Activar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); actions.onHardDelete(item) }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Eliminar permanentemente
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
     },
   ]
 }

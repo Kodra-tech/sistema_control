@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, Scissors } from "lucide-react"
@@ -17,6 +17,11 @@ import { navLinks } from "./nav-links"
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+
+  // Cerrar el Sheet cuando la ruta cambia (ej: botón atrás del browser)
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
 
   return (
     <>

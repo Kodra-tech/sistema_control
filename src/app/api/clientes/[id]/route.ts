@@ -69,7 +69,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   return NextResponse.json({ data: cliente })
 }
 
-// ── DELETE /api/clientes/[id] — soft delete ───────────────────────────────────
+// ── DELETE /api/clientes/[id] — hard delete ───────────────────────────────────
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const user = await getAuthUser()
@@ -79,12 +79,8 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const existing = await prisma.cliente.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
-  if (!existing.activo) return NextResponse.json({ error: "El cliente ya está inactivo" }, { status: 409 })
 
-  const cliente = await prisma.cliente.update({
-    where: { id },
-    data:  { activo: false },
-  })
+  await prisma.cliente.delete({ where: { id } })
 
   await invalidateCache(
     CACHE_KEYS.clientes(true),
@@ -92,5 +88,5 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     CACHE_KEYS.cliente(id),
   )
 
-  return NextResponse.json({ data: cliente })
+  return NextResponse.json({ data: { id } })
 }

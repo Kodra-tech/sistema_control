@@ -128,3 +128,35 @@
     @apply font-sans;
   }
 }
+
+/* ── FullCalendar — ajustes responsive ───────────────────────────────────── */
+.fc-responsive .fc .fc-button {
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 767px) {
+  .fc-responsive .fc .fc-button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+  }
+  .fc-responsive .fc .fc-toolbar-title {
+    font-size: 1rem;
+  }
+  .fc-responsive .fc .fc-daygrid-day-number,
+  .fc-responsive .fc .fc-col-header-cell-cushion {
+    font-size: 0.875rem;
+    padding: 4px 6px;
+  }
+  .fc-responsive .fc .fc-timegrid-slot-label-cushion {
+    font-size: 0.6875rem;
+  }
+  .fc-responsive .fc-event {
+    font-size: 0.75rem;
+  }
+  .fc-responsive .fc .fc-timegrid-event .fc-event-main {
+    padding: 2px 4px;
+  }
+}

@@ -149,14 +149,23 @@ export function CitaForm({ open, onClose, onSuccess, defaultFecha, defaultHora, 
     }
   }, [defaultValues?.clienteId, open])
 
-  // Reset on open/close
+  // Reset al abrir (con los defaults del slot) y limpiar al cerrar
   useEffect(() => {
     if (!open) {
-      form.reset()
+      form.reset({ clienteId: "", servicioId: "", fecha: undefined, hora: "", notas: "" })
       setConflicto(null)
       setBusqueda("")
+    } else {
+      form.reset({
+        clienteId:  defaultValues?.clienteId  ?? "",
+        servicioId: defaultValues?.servicioId ?? "",
+        fecha:      defaultValues?.fecha ?? defaultFecha,
+        hora:       defaultValues?.hora  ?? defaultHora  ?? "",
+        notas:      defaultValues?.notas ?? "",
+      })
     }
-  }, [open, form])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultFecha, defaultHora])
 
   // Agrupar servicios por categoría
   const serviciosPorCat = servicios.reduce<Record<string, ServicioOption[]>>((acc, s) => {

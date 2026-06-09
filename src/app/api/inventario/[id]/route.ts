@@ -75,8 +75,7 @@ export async function DELETE(
   const item   = await prisma.inventario.findUnique({ where: { id } })
   if (!item) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
 
-  // Soft delete
-  await prisma.inventario.update({ where: { id }, data: { activo: false } })
+  await prisma.inventario.delete({ where: { id } })
   await invalidateCache(CACHE_KEYS.inventario(), CACHE_KEYS.inventarioAlertas())
   return NextResponse.json({ data: { id } })
 }

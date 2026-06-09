@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useRef, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DataTable } from "@/components/shared/DataTable"
-import { ventaColumns, type VentaRow } from "@/components/ventas/VentaColumns"
+import { getVentaColumns, type VentaRow } from "@/components/ventas/VentaColumns"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Download } from "lucide-react"
 import { formatMXN } from "@/lib/utils/currency"
 import { exportToCSV, fmtFechaCSV, fmtMontoCSV } from "@/lib/utils/export"
 import { METODOS_PAGO } from "@/lib/constants"
+import { toast } from "sonner"
 
 interface ResumenVentas {
   ventas:   number
@@ -37,6 +38,19 @@ export function VentaTable({ ventas, total, resumen, defaultMes, defaultAnio }: 
   const [isPending, startTransition] = useTransition()
   const [tipo, setTipo]     = useState(searchParams.get("tipo")        ?? "")
   const [metodo, setMetodo] = useState(searchParams.get("metodo_pago") ?? "")
+
+  async function handleDelete(id: string) {
+    if (!confirm("¿Eliminar esta venta permanentemente? Esta acción no se puede deshacer.")) return
+    const res = await fetch(`/api/ventas/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      toast.success("Venta eliminada")
+      router.refresh()
+    } else {
+      toast.error("Error al eliminar la venta")
+    }
+  }
+
+  const columns = getVentaColumns(handleDelete)
 
   function updateParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -147,7 +161,7 @@ export function VentaTable({ ventas, total, resumen, defaultMes, defaultAnio }: 
       </div>
 
       <DataTable
-        columns={ventaColumns}
+        columns={columns}
         data={ventas}
         loading={isPending}
         pageSize={50}

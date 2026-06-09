@@ -8,16 +8,30 @@ import type { Cliente } from "@/generated/prisma/client"
 import { DataTable } from "@/components/shared/DataTable"
 import { ClienteForm } from "@/components/clientes/ClienteForm"
 import { getClienteColumns } from "@/components/clientes/ClienteColumns"
-import { softDeleteClienteAction } from "@/app/(dashboard)/clientes/actions"
+import {
+  softDeleteClienteAction,
+  activateClienteAction,
+  hardDeleteClienteAction,
+} from "@/app/(dashboard)/clientes/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface ClienteTableProps {
-  clientes:      Cliente[]
-  total:         number
-  defaultQ?:     string
+  clientes:       Cliente[]
+  total:          number
+  defaultQ?:      string
   defaultActivo?: boolean
 }
 
@@ -28,15 +42,16 @@ export function ClienteTable({
   defaultActivo = true,
 }: ClienteTableProps) {
   const router = useRouter()
-  const [formOpen,  setFormOpen]  = useState(false)
-  const [selected,  setSelected]  = useState<Cliente | null>(null)
-  const [isDeleting, startDelete] = useTransition()
-  const searchTimer               = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const [formOpen,     setFormOpen]     = useState(false)
+  const [selected,     setSelected]     = useState<Cliente | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Cliente | null>(null)
+  const [isPending,    startPending]    = useTransition()
+  const searchTimer                     = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // ── URL-driven search (debounced 300 ms) ──────────────────────────────────
   function pushSearch(q: string, activo: boolean) {
     const params = new URLSearchParams()
-    if (q)     params.set("q",     q)
+    if (q)      params.set("q",     q)
     if (!activo) params.set("activo", "false")
     router.push(`/clientes?${params.toString()}`)
   }
@@ -56,21 +71,50 @@ export function ClienteTable({
   }
 
   // ── Sheet ─────────────────────────────────────────────────────────────────
-  function openCreate() { setSelected(null);    setFormOpen(true) }
+  function openCreate() { setSelected(null); setFormOpen(true) }
   function openEdit(c: Cliente) { setSelected(c); setFormOpen(true) }
 
-  // ── Soft delete ───────────────────────────────────────────────────────────
+  // ── Desactivar (soft delete) ───────────────────────────────────────────────
   function handleDelete(cliente: Cliente) {
     const nombre = `${cliente.nombre} ${cliente.apellido ?? ""}`.trim()
-    if (!confirm(`¿Desactivar a "${nombre}"?`)) return
-    startDelete(async () => {
+    startPending(async () => {
       const result = await softDeleteClienteAction(cliente.id)
       result.error ? toast.error(result.error) : toast.success(`"${nombre}" desactivado`)
     })
   }
 
+  // ── Activar ───────────────────────────────────────────────────────────────
+  function handleActivate(cliente: Cliente) {
+    const nombre = `${cliente.nombre} ${cliente.apellido ?? ""}`.trim()
+    startPending(async () => {
+      const result = await activateClienteAction(cliente.id)
+      result.error ? toast.error(result.error) : toast.success(`"${nombre}" activado`)
+    })
+  }
+
+  // ── Hard delete ───────────────────────────────────────────────────────────
+  function handleHardDelete(cliente: Cliente) {
+    setDeleteTarget(cliente)
+  }
+
+  function confirmHardDelete() {
+    if (!deleteTarget) return
+    const nombre = `${deleteTarget.nombre} ${deleteTarget.apellido ?? ""}`.trim()
+    const id = deleteTarget.id
+    setDeleteTarget(null)
+    startPending(async () => {
+      const result = await hardDeleteClienteAction(id)
+      result.error ? toast.error(result.error) : toast.success(`"${nombre}" eliminado permanentemente`)
+    })
+  }
+
   const columns = useMemo(
-    () => getClienteColumns({ onEdit: openEdit, onDelete: handleDelete }),
+    () => getClienteColumns({
+      onEdit:       openEdit,
+      onDelete:     handleDelete,
+      onActivate:   handleActivate,
+      onHardDelete: handleHardDelete,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
@@ -86,7 +130,7 @@ export function ClienteTable({
               {total} {showInactive ? "inactivo(s)" : "activo(s)"}
             </p>
           </div>
-          <Button onClick={openCreate} disabled={isDeleting}>
+          <Button onClick={openCreate} disabled={isPending}>
             <UserPlus className="mr-2 h-4 w-4" />
             Nuevo cliente
           </Button>
@@ -110,7 +154,7 @@ export function ClienteTable({
                   id="inactivos"
                   checked={showInactive}
                   onCheckedChange={handleToggleInactive}
-                  disabled={isDeleting}
+                  disabled={isPending}
                 />
                 <Label htmlFor="inactivos" className="text-sm cursor-pointer select-none">
                   Ver inactivos
@@ -128,6 +172,33 @@ export function ClienteTable({
         defaultValues={selected}
         onSuccess={() => setFormOpen(false)}
       />
+
+      {/* AlertDialog: confirmar eliminación permanente */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará a{" "}
+              <strong>
+                {deleteTarget
+                  ? `${deleteTarget.nombre} ${deleteTarget.apellido ?? ""}`.trim()
+                  : ""}
+              </strong>{" "}
+              y todos sus datos de forma permanente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmHardDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

@@ -2,6 +2,11 @@
 
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal, Trash2 } from "lucide-react"
 import { formatMXN } from "@/lib/utils/currency"
 
 export interface VentaRow {
@@ -44,82 +49,107 @@ function fmtFecha(v: string | Date): string {
   return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })
 }
 
-export const ventaColumns: ColumnDef<VentaRow>[] = [
-  {
-    accessorKey: "fecha",
-    header: "Fecha",
-    cell: ({ row }) => <span className="whitespace-nowrap text-sm">{fmtFecha(row.original.fecha)}</span>,
-  },
-  {
-    accessorKey: "concepto",
-    header: "Concepto",
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium text-sm">{row.original.concepto ?? "—"}</p>
-        {row.original.tipo === "producto" && (
-          <span className="text-xs text-muted-foreground">Producto · x{row.original.cantidad}</span>
-        )}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "cliente",
-    header: "Cliente",
-    cell: ({ row }) => {
-      const c = row.original.cliente
-      if (!c) return <span className="text-muted-foreground text-sm">—</span>
-      return <span className="text-sm">{[c.nombre, c.apellido].filter(Boolean).join(" ")}</span>
+export function getVentaColumns(
+  onDelete: (id: string) => void,
+): ColumnDef<VentaRow>[] {
+  return [
+    {
+      accessorKey: "fecha",
+      header: "Fecha",
+      cell: ({ row }) => <span className="whitespace-nowrap text-sm">{fmtFecha(row.original.fecha)}</span>,
     },
-  },
-  {
-    accessorKey: "metodoPago",
-    header: "Método",
-    cell: ({ row }) => {
-      const m = row.original.metodoPago
-      return (
-        <Badge variant="outline" className={`text-xs ${METODO_COLOR[m] ?? ""}`}>
-          {METODO_LABEL[m] ?? m}
-        </Badge>
-      )
+    {
+      accessorKey: "concepto",
+      header: "Concepto",
+      cell: ({ row }) => (
+        <div>
+          <p className="font-medium text-sm">{row.original.concepto ?? "—"}</p>
+          {row.original.tipo === "producto" && (
+            <span className="text-xs text-muted-foreground">Producto · x{row.original.cantidad}</span>
+          )}
+        </div>
+      ),
     },
-  },
-  {
-    accessorKey: "cantidad",
-    header: "Cant.",
-    cell: ({ row }) => <span className="text-sm text-right block">{row.original.cantidad}</span>,
-  },
-  {
-    accessorKey: "total",
-    header: "Total",
-    cell: ({ row }) => (
-      <span className="text-sm font-medium text-right block">
-        {formatMXN(Number(row.original.total))}
-      </span>
-    ),
-  },
-  {
-    id: "utilidad",
-    header: "Utilidad $",
-    cell: ({ row }) => {
-      const u = calcUtilidad(row.original)
-      if (u === null) return <span className="text-muted-foreground text-sm">—</span>
-      return (
-        <span className={`text-sm text-right block font-medium ${u >= 0 ? "text-green-700" : "text-red-700"}`}>
-          {formatMXN(u)}
+    {
+      accessorKey: "cliente",
+      header: "Cliente",
+      cell: ({ row }) => {
+        const c = row.original.cliente
+        if (!c) return <span className="text-muted-foreground text-sm">—</span>
+        return <span className="text-sm">{[c.nombre, c.apellido].filter(Boolean).join(" ")}</span>
+      },
+    },
+    {
+      accessorKey: "metodoPago",
+      header: "Método",
+      cell: ({ row }) => {
+        const m = row.original.metodoPago
+        return (
+          <Badge variant="outline" className={`text-xs ${METODO_COLOR[m] ?? ""}`}>
+            {METODO_LABEL[m] ?? m}
+          </Badge>
+        )
+      },
+    },
+    {
+      accessorKey: "cantidad",
+      header: () => <div className="text-right">Cant.</div>,
+      cell: ({ row }) => <span className="text-sm text-right block">{row.original.cantidad}</span>,
+    },
+    {
+      accessorKey: "total",
+      header: () => <div className="text-right">Total</div>,
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-right block">
+          {formatMXN(Number(row.original.total))}
         </span>
-      )
+      ),
     },
-  },
-  {
-    id: "margen",
-    header: "Margen %",
-    cell: ({ row }) => {
-      const u   = calcUtilidad(row.original)
-      const sub = Number(row.original.subtotal)
-      if (u === null || sub === 0) return <span className="text-muted-foreground text-sm">—</span>
-      const pct = (u / sub) * 100
-      const cls = pct >= 50 ? "text-green-700" : pct >= 20 ? "text-amber-700" : "text-red-700"
-      return <span className={`text-sm text-right block ${cls}`}>{pct.toFixed(0)}%</span>
+    {
+      id: "utilidad",
+      header: () => <div className="text-right">Utilidad $</div>,
+      cell: ({ row }) => {
+        const u = calcUtilidad(row.original)
+        if (u === null) return <span className="text-muted-foreground text-sm">—</span>
+        return (
+          <span className={`text-sm text-right block font-medium ${u >= 0 ? "text-green-700" : "text-red-700"}`}>
+            {formatMXN(u)}
+          </span>
+        )
+      },
     },
-  },
-]
+    {
+      id: "margen",
+      header: () => <div className="text-right">Margen %</div>,
+      cell: ({ row }) => {
+        const u   = calcUtilidad(row.original)
+        const sub = Number(row.original.subtotal)
+        if (u === null || sub === 0) return <span className="text-muted-foreground text-sm">—</span>
+        const pct = (u / sub) * 100
+        const cls = pct >= 50 ? "text-green-700" : pct >= 20 ? "text-amber-700" : "text-red-700"
+        return <span className={`text-sm text-right block ${cls}`}>{pct.toFixed(0)}%</span>
+      },
+    },
+    {
+      id: "acciones",
+      header: () => null,
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(row.original.id) }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
+}

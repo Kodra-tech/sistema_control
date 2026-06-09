@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { formatMXN } from "@/lib/utils/currency"
+import { NumberInput } from "@/components/shared/NumberInput"
 
 interface ProductoOpt {
   id: string; nombre: string; unidad: string; stockActual: string | number
@@ -41,22 +42,6 @@ interface CompraFormProps {
   onSuccess: (mensaje: string) => void
 }
 
-function NumField({ value, onChange, label }: { value?: number; onChange: (v: number) => void; label: string }) {
-  return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <FormControl>
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          value={value === undefined ? "" : value}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        />
-      </FormControl>
-    </FormItem>
-  )
-}
 
 export function CompraForm({ open, onClose, onSuccess }: CompraFormProps) {
   const [productos, setProductos] = useState<ProductoOpt[]>([])
@@ -86,7 +71,9 @@ export function CompraForm({ open, onClose, onSuccess }: CompraFormProps) {
   }, [])
 
   useEffect(() => {
-    if (!open) form.reset({ productoId: "", fecha: today, proveedor: "", notas: "" })
+    if (!open) {
+      form.reset({ productoId: "", cantidad: undefined, precioUnitario: undefined, fecha: today, proveedor: "", notas: "" })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -138,10 +125,22 @@ export function CompraForm({ open, onClose, onSuccess }: CompraFormProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="cantidad" render={({ field }) => (
-                <NumField label="Cantidad" value={field.value} onChange={field.onChange} />
+                <FormItem>
+                  <FormLabel>Cantidad</FormLabel>
+                  <FormControl>
+                    <NumberInput value={field.value} onChange={field.onChange} step="1" min={1} placeholder="1" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
               <FormField control={form.control} name="precioUnitario" render={({ field }) => (
-                <NumField label="Costo unitario" value={field.value} onChange={field.onChange} />
+                <FormItem>
+                  <FormLabel>Costo unitario</FormLabel>
+                  <FormControl>
+                    <NumberInput value={field.value} onChange={field.onChange} prefix="$" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
             </div>
 

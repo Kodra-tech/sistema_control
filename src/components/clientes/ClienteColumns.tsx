@@ -1,7 +1,7 @@
 "use client"
 
 import { type ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Pencil, UserX } from "lucide-react"
+import { MoreHorizontal, Pencil, UserX, UserCheck, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,8 +15,10 @@ import type { Cliente } from "@/generated/prisma/client"
 import { formatShortDate } from "@/lib/utils/dates"
 
 interface Actions {
-  onEdit:   (cliente: Cliente) => void
-  onDelete: (cliente: Cliente) => void
+  onEdit:       (cliente: Cliente) => void
+  onDelete:     (cliente: Cliente) => void
+  onActivate:   (cliente: Cliente) => void
+  onHardDelete: (cliente: Cliente) => void
 }
 
 export function getClienteColumns(actions: Actions): ColumnDef<Cliente>[] {
@@ -101,19 +103,35 @@ export function getClienteColumns(actions: Actions): ColumnDef<Cliente>[] {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => actions.onEdit(cliente)}>
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); actions.onEdit(cliente) }}
+              >
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
-              {cliente.activo && (
+              <DropdownMenuSeparator />
+              {cliente.activo ? (
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); actions.onDelete(cliente) }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <UserX className="mr-2 h-4 w-4" />
+                  Desactivar
+                </DropdownMenuItem>
+              ) : (
                 <>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => actions.onDelete(cliente)}
+                    onClick={(e) => { e.stopPropagation(); actions.onActivate(cliente) }}
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Activar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); actions.onHardDelete(cliente) }}
                     className="text-destructive focus:text-destructive"
                   >
-                    <UserX className="mr-2 h-4 w-4" />
-                    Desactivar
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Eliminar permanentemente
                   </DropdownMenuItem>
                 </>
               )}

@@ -1,10 +1,20 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DataTable } from "@/components/shared/DataTable"
 import { getInventarioColumns, type InventarioRow } from "@/components/inventario/InventarioColumns"
 import { InventarioForm } from "@/components/inventario/InventarioForm"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,9 +26,9 @@ import { cn } from "@/lib/utils"
 import { CATEGORIAS_INVENTARIO } from "@/lib/constants"
 
 interface InventarioTableProps {
-  items:   InventarioRow[]
-  total:   number
-  defaultQ: string
+  items:         InventarioRow[]
+  total:         number
+  defaultQ:      string
   defaultActivo: boolean
 }
 
@@ -26,10 +36,12 @@ export function InventarioTable({ items, total, defaultQ, defaultActivo }: Inven
   const router       = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
-  const [formOpen,  setFormOpen]  = useState(false)
-  const [selected,  setSelected]  = useState<InventarioRow | null>(null)
-  const [q,         setQ]         = useState(defaultQ)
-  const debounceRef = useState<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const [formOpen,     setFormOpen]     = useState(false)
+  const [selected,     setSelected]     = useState<InventarioRow | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<InventarioRow | null>(null)
+  const [q,            setQ]            = useState(defaultQ)
+  const [showInactive, setShowInactive] = useState(!defaultActivo)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   function updateParams(updates: Record<string, string | undefined>) {
     const params = new URLSearchParams(searchParams.toString())
@@ -42,30 +54,70 @@ export function InventarioTable({ items, total, defaultQ, defaultActivo }: Inven
 
   function handleSearch(val: string) {
     setQ(val)
-    clearTimeout(debounceRef[0])
-    ;(debounceRef as [ReturnType<typeof setTimeout> | undefined, unknown])[0] = setTimeout(() => {
-      updateParams({ q: val || undefined })
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      updateParams({ q: val || undefined, page: undefined })
     }, 300)
   }
 
-  async function handleToggle(id: string, activo: boolean) {
-    const res  = await fetch(`/api/inventario/${id}`, {
+  function handleToggleInactive(checked: boolean) {
+    setShowInactive(checked)
+    updateParams({ activo: checked ? "false" : undefined, alerta: undefined, page: undefined })
+  }
+
+  // ── Acciones ──────────────────────────────────────────────────────────────
+
+  async function handleDesactivar(row: InventarioRow) {
+    const res = await fetch(`/api/inventario/${row.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ activo: !activo }),
+      body:    JSON.stringify({ activo: false }),
     })
     if (res.ok) {
-      toast.success(activo ? "Producto desactivado" : "Producto activado")
+      toast.success(`"${row.nombre}" desactivado`)
       router.refresh()
     } else {
-      toast.error("Error al actualizar")
+      toast.error("Error al desactivar")
     }
   }
 
-  const columns = getInventarioColumns(
-    (row) => { setSelected(row); setFormOpen(true) },
-    handleToggle,
-  )
+  async function handleActivar(row: InventarioRow) {
+    const res = await fetch(`/api/inventario/${row.id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ activo: true }),
+    })
+    if (res.ok) {
+      toast.success(`"${row.nombre}" activado`)
+      router.refresh()
+    } else {
+      toast.error("Error al activar")
+    }
+  }
+
+  function handleHardDelete(row: InventarioRow) {
+    setDeleteTarget(row)
+  }
+
+  async function confirmHardDelete() {
+    if (!deleteTarget) return
+    const { id, nombre } = deleteTarget
+    setDeleteTarget(null)
+    const res = await fetch(`/api/inventario/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      toast.success(`"${nombre}" eliminado permanentemente`)
+      router.refresh()
+    } else {
+      toast.error("Error al eliminar")
+    }
+  }
+
+  const columns = getInventarioColumns({
+    onEdit:       (row) => { setSelected(row); setFormOpen(true) },
+    onDesactivar: handleDesactivar,
+    onActivar:    handleActivar,
+    onHardDelete: handleHardDelete,
+  })
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2 w-full">
@@ -85,13 +137,23 @@ export function InventarioTable({ items, total, defaultQ, defaultActivo }: Inven
           {CATEGORIAS_INVENTARIO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
         </SelectContent>
       </Select>
+      {!showInactive && (
+        <div className="flex items-center gap-1.5">
+          <Switch
+            id="soloAlerta"
+            checked={searchParams.get("alerta") === "true"}
+            onCheckedChange={(v) => updateParams({ alerta: v ? "true" : undefined })}
+          />
+          <Label htmlFor="soloAlerta" className="text-sm cursor-pointer">Solo alertas</Label>
+        </div>
+      )}
       <div className="flex items-center gap-1.5">
         <Switch
-          id="soloAlerta"
-          checked={searchParams.get("alerta") === "true"}
-          onCheckedChange={(v) => updateParams({ alerta: v ? "true" : undefined })}
+          id="inactivos"
+          checked={showInactive}
+          onCheckedChange={handleToggleInactive}
         />
-        <Label htmlFor="soloAlerta" className="text-sm cursor-pointer">Solo alertas</Label>
+        <Label htmlFor="inactivos" className="text-sm cursor-pointer">Ver inactivos</Label>
       </div>
       <div className="ml-auto">
         <Button size="sm" className="h-8" onClick={() => { setSelected(null); setFormOpen(true) }}>
@@ -110,19 +172,43 @@ export function InventarioTable({ items, total, defaultQ, defaultActivo }: Inven
         pageSize={50}
         toolbar={toolbar}
         rowClassName={(row: InventarioRow) =>
-          Number(row.stockActual) <= Number(row.stockMinimo)
+          !showInactive && Number(row.stockActual) <= Number(row.stockMinimo)
             ? cn("bg-red-50 hover:bg-red-100/70")
             : ""
         }
       />
-      <p className="text-xs text-muted-foreground">{total} productos</p>
+      <p className="text-xs text-muted-foreground">
+        {total} {showInactive ? "inactivo(s)" : "activo(s)"}
+      </p>
 
       <InventarioForm
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        onSuccess={() => router.refresh()}
+        onSuccess={() => { setFormOpen(false); router.refresh() }}
         defaultValues={selected}
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará{" "}
+              <strong>{deleteTarget?.nombre}</strong>{" "}
+              y todos sus datos de forma permanente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmHardDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
