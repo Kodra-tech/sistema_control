@@ -129,6 +129,51 @@
   }
 }
 
+/* ── FullCalendar — modo oscuro ──────────────────────────────────────────── */
+.dark .fc {
+  --fc-border-color:            var(--border);
+  --fc-page-bg-color:           transparent;
+  --fc-today-bg-color:          oklch(1 0 0 / 4%);
+  --fc-event-bg-color:          oklch(0.488 0.243 264.376);
+  --fc-event-border-color:      oklch(0.488 0.243 264.376);
+  --fc-neutral-bg-color:        var(--card);
+  --fc-list-event-hover-bg-color: oklch(1 0 0 / 5%);
+}
+.dark .fc .fc-col-header-cell-cushion,
+.dark .fc .fc-daygrid-day-number,
+.dark .fc .fc-list-event-title a,
+.dark .fc .fc-list-day-text,
+.dark .fc .fc-list-day-side-text {
+  color: var(--foreground);
+}
+.dark .fc-theme-standard td,
+.dark .fc-theme-standard th,
+.dark .fc-theme-standard .fc-scrollgrid {
+  border-color: var(--border);
+}
+.dark .fc .fc-timegrid-slot-label-cushion,
+.dark .fc .fc-timegrid-axis-cushion {
+  color: var(--muted-foreground);
+}
+.dark .fc .fc-button {
+  background-color: var(--secondary);
+  border-color:     var(--border);
+  color:            var(--secondary-foreground);
+}
+.dark .fc .fc-button:hover {
+  background-color: var(--accent);
+  border-color:     var(--border);
+}
+.dark .fc .fc-button-primary:not(:disabled).fc-button-active,
+.dark .fc .fc-button-primary:not(:disabled):active {
+  background-color: var(--primary);
+  border-color:     var(--primary);
+  color:            var(--primary-foreground);
+}
+.dark .fc .fc-toolbar-title {
+  color: var(--foreground);
+}
+
 /* ── FullCalendar — ajustes responsive ───────────────────────────────────── */
 .fc-responsive .fc .fc-button {
   font-size: 0.8125rem;

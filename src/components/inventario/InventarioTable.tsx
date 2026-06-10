@@ -173,7 +173,7 @@ export function InventarioTable({ items, total, defaultQ, defaultActivo }: Inven
         toolbar={toolbar}
         rowClassName={(row: InventarioRow) =>
           !showInactive && Number(row.stockActual) <= Number(row.stockMinimo)
-            ? cn("bg-red-50 hover:bg-red-100/70")
+            ? cn("bg-red-50 dark:bg-red-950/40 hover:bg-red-100/70 dark:hover:bg-red-900/40")
             : ""
         }
       />

@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MobileNav } from "./MobileNav"
+import { ThemeToggle } from "./ThemeToggle"
 import { logoutAction } from "@/actions/auth"
 
 interface HeaderProps {
@@ -48,6 +49,8 @@ export function Header({
       <MobileNav />
 
       <p className="flex-1 text-sm font-medium truncate">{nombreSalon}</p>
+
+      <ThemeToggle />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

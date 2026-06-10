@@ -339,7 +339,7 @@ export default function CitaCalendar() {
               )}
 
               {selectedCita.ventaId && (
-                <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200 w-full justify-center">
+                <Badge variant="outline" className="text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700 w-full justify-center">
                   Ya convertida en venta
                 </Badge>
               )}

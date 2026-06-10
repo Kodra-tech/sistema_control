@@ -77,7 +77,7 @@ export function getClienteColumns(actions: Actions): ColumnDef<Cliente>[] {
       header: "Estado",
       cell: ({ row }) =>
         row.original.activo ? (
-          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+          <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30">
             Activo
           </Badge>
         ) : (

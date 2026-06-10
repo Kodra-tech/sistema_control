@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { configuracionSchema, type ConfiguracionInput } from "@/lib/validations/configuracion"
 import {
@@ -24,10 +25,14 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Sun, Moon, Monitor } from "lucide-react"
 
 export default function ConfiguracionPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, startSave] = useTransition()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const form = useForm<ConfiguracionInput>({
     resolver: zodResolver(configuracionSchema),
@@ -87,6 +92,36 @@ export default function ConfiguracionPage() {
         <p className="text-sm text-muted-foreground mt-1">Datos generales del salón</p>
       </div>
 
+      {/* ── Apariencia ─────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Apariencia</CardTitle>
+          <CardDescription>Elige el tema de color. La preferencia se guarda en este dispositivo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {[
+              { value: "light",  label: "Claro",   Icon: Sun     },
+              { value: "dark",   label: "Oscuro",  Icon: Moon    },
+              { value: "system", label: "Sistema", Icon: Monitor },
+            ].map(({ value, label, Icon }) => (
+              <Button
+                key={value}
+                variant={mounted && theme === value ? "default" : "outline"}
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => setTheme(value)}
+                disabled={!mounted}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Información del salón ────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Información del salón</CardTitle>

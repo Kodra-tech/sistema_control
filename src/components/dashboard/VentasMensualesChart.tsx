@@ -41,15 +41,15 @@ export function VentasMensualesChart({ data }: VentasMensualesChartProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 4, right: 4, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
         <XAxis
           dataKey="mes_label"
-          tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+          tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
@@ -58,7 +58,7 @@ export function VentasMensualesChart({ data }: VentasMensualesChartProps) {
         <Tooltip content={<CustomTooltip />} />
         <Legend
           wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-          formatter={(v: string) => <span style={{ color: "hsl(var(--foreground))" }}>{v}</span>}
+          formatter={(v: string) => <span style={{ color: "var(--foreground)" }}>{v}</span>}
         />
         <Bar dataKey="ventas_totales" name="Ventas"  fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={24} />
         <Bar dataKey="gastos_totales" name="Gastos"  fill="#ef4444" radius={[3, 3, 0, 0]} maxBarSize={24} />

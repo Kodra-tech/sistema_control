@@ -51,10 +51,10 @@ export function TopServiciosChart({ data }: TopServiciosChartProps) {
         layout="vertical"
         margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
         <XAxis
           type="number"
-          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
@@ -63,7 +63,7 @@ export function TopServiciosChart({ data }: TopServiciosChartProps) {
           type="category"
           dataKey="name"
           width={120}
-          tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
+          tick={{ fontSize: 11, fill: "var(--foreground)" }}
           axisLine={false}
           tickLine={false}
         />

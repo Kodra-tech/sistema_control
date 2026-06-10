@@ -27,9 +27,9 @@ function MargenCell({ precio, costo }: { precio: unknown; costo: unknown }) {
   }
   const pct = ((p - c) / p) * 100
   const cls =
-    pct > 50  ? "text-green-700 bg-green-50 border-green-200" :
-    pct >= 20 ? "text-amber-700 bg-amber-50 border-amber-200" :
-                "text-red-700   bg-red-50   border-red-200"
+    pct > 50  ? "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700" :
+    pct >= 20 ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700" :
+                "text-red-700   dark:text-red-300   bg-red-50   dark:bg-red-900/30   border-red-200   dark:border-red-700"
   return (
     <Badge variant="outline" className={cls}>
       {pct.toFixed(0)}%
@@ -96,7 +96,7 @@ export function getServicioColumns(actions: Actions): ColumnDef<Servicio>[] {
       header: "Estado",
       cell: ({ row }) =>
         row.original.activo ? (
-          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+          <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30">
             Activo
           </Badge>
         ) : (

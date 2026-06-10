@@ -33,10 +33,10 @@ const METODO_LABEL: Record<string, string> = {
 }
 
 const METODO_COLOR: Record<string, string> = {
-  efectivo:      "bg-green-50  text-green-700  border-green-200",
-  tarjeta:       "bg-blue-50   text-blue-700   border-blue-200",
-  transferencia: "bg-violet-50 text-violet-700 border-violet-200",
-  otro:          "bg-zinc-100  text-zinc-600   border-zinc-200",
+  efectivo:      "bg-green-50  dark:bg-green-900/30  text-green-700  dark:text-green-300  border-green-200  dark:border-green-700",
+  tarjeta:       "bg-blue-50   dark:bg-blue-900/30   text-blue-700   dark:text-blue-300   border-blue-200   dark:border-blue-700",
+  transferencia: "bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-700",
+  otro:          "bg-zinc-100  dark:bg-zinc-800      text-zinc-600   dark:text-zinc-400   border-zinc-200   dark:border-zinc-700",
 }
 
 function calcUtilidad(row: VentaRow) {
